@@ -1,27 +1,44 @@
 import random 
 import time
+import socket
+import sys
+from constants import *
 baraja1 = ["A","2","3","4","5","6","7","8","9","10","J","D","R"]
 baraja2 = [" de Treboles"," de corazones"," de picas"," de diamantes"]
 baraja3 = []
-jugadores =[] 
+jugadores = []
+connected_players = []
+
+
 """
-creación del mazo de juego"""
+creación del mazo de juego
+"""
 for i in baraja2:
     for j in baraja1: 
         baraja3.append([j,i])
 random.shuffle(baraja3)
  
 
+
+
+
+
 """
-funcion con la cual se pregunta si posee x carta"""
+funcion con la cual se pregunta si posee x carta
+"""
+
 def preguntar(jugador1,jugador2):
     print("preguntar")
+
 
 class jugador(): 
     def __init__(self):
         self.nick = "" #nick del jugador
         self.mano = [] #cartas que poseee en su mano
         self.sets = [] #sets completados
+
+    def get_player_info(self):
+        return self.nick, self.mano, self.sets
 
 
 def preguntar(jugador1, jugador2):
@@ -145,5 +162,30 @@ def play(jugadores, deck):
         print("=========================================")
 
 if __name__ == "__main__":
-    inicio()     
+    if len(sys.argv) <= 1:
+        print("usage: baraja.py <port>")
+        sys.exit()
+
+    inicio()
     play(jugadores, baraja3)
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+        server_port = int(sys.argv[1])
+        server_address = (HOST, server_port)
+
+        sock.bind(server_address)
+        sock.listen(5)
+
+        connections = []
+
+        while len(connected_players) < len(jugadores):
+            print("Waiting for players... ")
+            conn, addr = sock.accept()
+            print(f"One player entered!")
+            connected_players.append(addr)
+            connections.append(conn)
+
+        print("Game ready!")
+
+
+
