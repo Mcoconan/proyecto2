@@ -27,8 +27,6 @@ random.shuffle(baraja3)
 funcion con la cual se pregunta si posee x carta
 """
 
-def preguntar(jugador1,jugador2):
-    print("preguntar")
 
 
 class jugador(): 
@@ -154,6 +152,7 @@ def play(jugadores, deck):
             other_player= int(input("tu eleccion: "))        
         preguntar(order[turn], order[other_player])
         checkeoDeSet(order[turn])
+
         if turn >= len(order):
             turn = 0
         else:
@@ -167,7 +166,6 @@ if __name__ == "__main__":
         sys.exit()
 
     inicio()
-    play(jugadores, baraja3)
 
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         server_port = int(sys.argv[1])
@@ -184,8 +182,18 @@ if __name__ == "__main__":
             print(f"One player entered!")
             connected_players.append(addr)
             connections.append(conn)
+            print(connections[-1])
+            nickname = connections[-1].recv(BUFF_SIZE)
+            jugadores[len(connections) - 1].nick = nickname
+
+            player = jugadores[len(connections) - 1]
+
+            connections[-1].send(str([player.mano, player.sets]).encode())
+            print(f"Sent username & deck to player {len(connections)} ({nickname})")
 
         print("Game ready!")
+    play(jugadores, baraja3)
+
 
 
 
