@@ -13,21 +13,45 @@ GAME_OVER = False
 class PlayerClient:
     def __init__(self):
         nickname = input("Please specify your nickname:\n>> ")
-        with sock as s:
-            print(server_ip, server_port, "THE PORT")
-            s.connect((server_ip, server_port))
-            s.sendall(bytes(nickname, encoding='ascii'))
-            data = s.recv(1024)
+
+        print(server_ip, server_port, "THE PORT")
+        sock.connect((server_ip, server_port))
+        sock.sendall(bytes(nickname, encoding='ascii'))
+        data = sock.recv(1024)
         self.nick = nickname
         self.deck, self.sets = ('Received', eval(repr(data)))
 
 
-def message_thread():
+def game_thread():
     """
     This function handles messaging
     :return:
     """
-    response, _ = sock.recvfrom(1024)
+    while not GAME_OVER:
+        response, _ = sock.recvfrom(BUFF_SIZE)
+        response = response.decode()
+        action, payload = response[0], response[1:]
+
+        if action == GAME_UPDATE:
+            print(payload)
+
+        elif action == INPUT_REQUIRED:
+            payload, max_value = eval(payload)
+            input_value = max_value + 1
+            print(payload)
+
+            while input_value > max_value:
+                try:
+                    input_value = int(input("Type in your choice\n>> "))
+                except ValueError:
+                    print("Non numeric value detected")
+                    continue
+
+            sock.sendall(str(input_value).encode())
+
+
+
+
 
 if __name__ == '__main__':
     if len(sys.argv) != 3:
@@ -36,6 +60,10 @@ if __name__ == '__main__':
 
     player = PlayerClient()
     print(f"Connected to server on IP: {server_ip}, PORT: {server_port}")
+    game = threading.Thread(target=game_thread)
+    game.daemon = True
+    game.start()
+
     while not GAME_OVER:
         time.sleep(1)
 

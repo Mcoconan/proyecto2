@@ -1,14 +1,16 @@
-import random 
+# !/usr/bin/python
+# -- coding: utf-8 --
+
+import random
 import time
 import socket
 import sys
 from constants import *
-baraja1 = ["A","2","3","4","5","6","7","8","9","10","J","D","R"]
-baraja2 = [" de Treboles"," de corazones"," de picas"," de diamantes"]
+baraja1 = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
+baraja2 = ["♣", "♥", "♠", "♦"]
 baraja3 = []
 jugadores = []
 connected_players = []
-
 
 """
 creación del mazo de juego
@@ -31,12 +33,20 @@ funcion con la cual se pregunta si posee x carta
 
 class jugador(): 
     def __init__(self):
-        self.nick = "" #nick del jugador
-        self.mano = [] #cartas que poseee en su mano
-        self.sets = [] #sets completados
+        self.nick = ""      # nick del jugador
+        self.mano = []      # cartas que poseee en su mano
+        self.sets = []      # sets completados
+        self.socket = None  # socket
+
 
     def get_player_info(self):
         return self.nick, self.mano, self.sets
+
+
+def send_update_to_all_users(message):
+    for connection in connections:
+        print("SENDING STATUS", connection)
+        connection.send(f"{GAME_UPDATE}{message}".encode())
 
 
 def preguntar(jugador1, jugador2):
@@ -45,10 +55,17 @@ def preguntar(jugador1, jugador2):
     #choose = random.randint(0,len(jugador1.mano)-1)
     #value = jugador1.mano[choose][0] #carta a preguntar
     print("carta a preguntar: ")
+    card_payload = "Card to ask for:"
+
     for x in jugador1.mano:
         print(cont,") "+str(x[0]+" "+x[1]))
+        card_payload += f"\n{cont}) {x[0]} {x[1]}"
         cont +=1
-    it = int(input("escoge una carta: "))
+
+    jugador1.socket.send(f"{INPUT_REQUIRED}{[card_payload, len(jugador1.mano)]}".encode())
+
+    it = int(jugador1.socket.recv(BUFF_SIZE).decode())
+
     value = jugador1.mano[it-1][0]
     for carta in jugador2.mano:
         if carta[0] == value:
@@ -58,31 +75,42 @@ def preguntar(jugador1, jugador2):
     for carta in poseidas:
         jugador1.mano.append(carta)
     status = jugador1.nick+" le ha preguntado a  "+jugador2.nick+" si tiene la carta "+value+"s. "
+    send_update_to_all_users(status)
+
     print()
     status = jugador2.nick+" tenia "+str(len(poseidas))+" cartas de "+value
+    send_update_to_all_users(status)
+
     print(status)
     if len(poseidas) == 0:
         pescar(jugador1)
         status = "al jugador: "+jugador1.nick+" le toca pescar "
+        send_update_to_all_users(status)
+    else:
+        checkeoDeSet(jugador1)
+        jugador1.socket.send(f"{GAME_UPDATE}Your new deck is: {jugador1.mano}\nAnd your sets are: {jugador1.sets}".encode())
     print(status)
 
 def pescar(jugador):
     print(baraja3)
     carta = baraja3.pop()
     jugador.mano.append(carta)
+    jugador.socket.send(f"{GAME_UPDATE}Your new deck is: {jugador.mano}\nAnd your sets are: {jugador.sets}".encode())
+
 
 def checkeoDeSet(jugador):
     cantidad = {}
     for carta in jugador.mano:
         if carta[0] not in cantidad.keys():
             cantidad[carta[0]] = 1
-        if carta[0] in cantidad.keys():
+        elif carta[0] in cantidad.keys():
             cantidad[carta[0]] += 1
     for count in cantidad.keys():
         if cantidad[count] == 4:
             print("el jugador: "+jugador.nick+" tiene un set de "+count+"s.")
+            send_update_to_all_users(f"{jugador.nick} has a set of {count}s!")
             jugador.sets.append(count)
-            jugador.mano[:] = [carta for carta in jugador.mano if carta[0] == count]
+            jugador.mano[:] = [carta for carta in jugador.mano if carta[0] != count]
 
 def inicio():
     cant = 0
@@ -94,16 +122,11 @@ def inicio():
         if (err>0):
             print("input no valido")
         err = 0
-    for i in range(0,int(cant)):
-        jugadores.append(jugador())
-        nombre = input("ingrese nombre del jugador "+str(i+1)+": ")
-        jugadores[i].nick = nombre 
     
 def play(jugadores, deck):
     turn = 0
     size = 7 # cnaitdad de cartas por jugador
-    dealt = 0 
-    random.shuffle(jugadores) #orden de los jugadores
+    dealt = 0
     order = jugadores
     for i in order:
         while dealt < size:
@@ -138,27 +161,42 @@ def play(jugadores, deck):
         other_player = turn
         """ 
         while other_player == turn:
-            other_player = random.randint(0,3) """ #decidir a quien se le pregunta
-        print("turno de :",order[turn].nick)
+            other_player = random.randint(0,3) 
+        """ #decidir a quien se le pregunta
+
+        print("turno de :", order[turn].nick)
+        connections[turn].send(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode())
         print(" ---------------------------  ")
         print("a quien deseas preguntar?")
         cont = 0
+        ask_payload = "Who do you want to ask for a card?"
         while other_player == turn:
             for j in order:
                 if(cont != turn):
                     print(cont,") "+j.nick)
+                    ask_payload += f"\n{cont}) {j.nick}"
                 cont +=1
             cont = 1
-            other_player= int(input("tu eleccion: "))        
+            print("Sending payload", ask_payload)
+
+            connections[turn].send((INPUT_REQUIRED + str([ask_payload, len(order) - 1])).encode())
+
+            other_player = int(connections[turn].recv(BUFF_SIZE).decode())
+
         preguntar(order[turn], order[other_player])
         checkeoDeSet(order[turn])
 
-        if turn >= len(order):
+        if turn >= len(order) - 1:
             turn = 0
         else:
             turn += 1
         time.sleep(3)
         print("=========================================")
+
+
+    return True
+
+
 
 if __name__ == "__main__":
     if len(sys.argv) <= 1:
@@ -166,8 +204,8 @@ if __name__ == "__main__":
         sys.exit()
 
     inicio()
-
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    with sock as sock:
         server_port = int(sys.argv[1])
         server_address = (HOST, server_port)
 
@@ -183,8 +221,10 @@ if __name__ == "__main__":
             connected_players.append(addr)
             connections.append(conn)
             print(connections[-1])
-            nickname = connections[-1].recv(BUFF_SIZE)
+            nickname = connections[-1].recv(BUFF_SIZE).decode()
+            print(f"Your nickname is now {nickname}")
             jugadores[len(connections) - 1].nick = nickname
+            jugadores[len(connections) - 1].socket = conn
 
             player = jugadores[len(connections) - 1]
 
