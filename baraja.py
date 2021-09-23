@@ -50,6 +50,13 @@ class jugador():
         self.sets = []      # sets completados
         self.socket = None  # socket
 
+    def get_deck_string(self):
+        deck = ""
+        for card in self.mano:
+            deck += f"{card[0]}{card[1]}\n"
+
+        return deck
+
 
     def get_player_info(self):
         return self.nick, self.mano, self.sets
@@ -103,7 +110,7 @@ def preguntar(jugador1, jugador2):
         return False
     else:
         checkeoDeSet(jugador1)
-        jugador1.socket.send(encrypt(f"{GAME_UPDATE}Your new deck is: {jugador1.mano}\nAnd your sets are: {jugador1.sets}".encode()))
+        jugador1.socket.send(encrypt(f"{GAME_UPDATE}Your new deck is:\n{jugador1.get_deck_string()}\nAnd your sets are: {jugador1.sets}".encode()))
         return True
 
 def pescar(jugador, logging=True):
@@ -111,7 +118,7 @@ def pescar(jugador, logging=True):
     carta = baraja3.pop()
     jugador.mano.append(carta)
     if logging:
-        jugador.socket.send(encrypt(f"{GAME_UPDATE}Your new deck is: {jugador.mano}\nAnd your sets are: {jugador.sets}".encode()))
+        jugador.socket.send(encrypt(f"{GAME_UPDATE}Your new deck is: {jugador.get_deck_string()}\nAnd your sets are: {jugador.sets}".encode()))
 
 
 def checkeoDeSet(jugador):
@@ -151,6 +158,9 @@ def play(jugadores, deck):
             pescar(i, logging=False)
             dealt += 1
         dealt = 0
+        i.socket.send(encrypt(f"{GAME_UPDATE}Your deck is:\n{i.get_deck_string()}".encode()))
+
+
 
     while len(deck) != 0:
         for jugador in order:
@@ -194,7 +204,6 @@ def play(jugadores, deck):
                     ask_payload += f"\n{cont}) {j.nick}"
                 cont +=1
             cont = 1
-            print("Sending payload", ask_payload)
 
             connections[turn].send(encrypt((INPUT_REQUIRED + str([ask_payload, len(order) - 1])).encode()))
 

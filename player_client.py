@@ -25,7 +25,6 @@ class PlayerClient:
     def __init__(self):
         nickname = input("Please specify your nickname:\n>> ")
 
-        print(server_ip, server_port, "THE PORT")
         sock.connect((server_ip, server_port))
         sock.sendall(encrypt(bytes(nickname, encoding='ascii')))
         data = decrypt(sock.recv(1024))
@@ -44,12 +43,12 @@ def game_thread():
         action, payload = response[0], response[1:]
 
         if action == GAME_UPDATE:
-            print(payload)
+            print(f"\n{payload}")
 
         elif action == INPUT_REQUIRED:
             payload, max_value = eval(payload)
             input_value = max_value + 1
-            print(payload)
+            print(f"\n{payload}")
 
             while input_value > max_value:
                 try:
@@ -61,12 +60,12 @@ def game_thread():
             sock.sendall(encrypt(str(input_value).encode()))
 
         elif action == CHAT:
-            chat = input("Type a message to chat with the room (enter to skip): \n>> ")
+            chat = input("Type a message to chat with the room (enter to skip & end your turn): \n>> ")
             if len(chat) > 0:
                 sock.sendall(encrypt(chat.encode()))
             else:
                 sock.sendall(encrypt("#%EmptyMessage#%".encode()))
-            print("Your turn has finished")
+            print("******************\nYour turn has finished\n******************")
 
 
 def send_chat():
@@ -80,7 +79,7 @@ if __name__ == '__main__':
         sys.exit()
 
     player = PlayerClient()
-    print(f"Connected to server on IP: {server_ip}, PORT: {server_port}")
+    print(f"Connected to server on IP: {server_ip}, PORT: {server_port}\n")
     game = threading.Thread(target=game_thread)
     game.daemon = True
     game.start()
