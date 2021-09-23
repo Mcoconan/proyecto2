@@ -59,7 +59,7 @@ def send_update_to_all_users(message, exclude=None):
     for connection in connections:
         if connection != exclude:
             print("SENDING STATUS", connection)
-            connection.send(f"{GAME_UPDATE}{message}".encode())
+            connection.send(encrypt(f"{GAME_UPDATE}{message}".encode()))
 
 
 def preguntar(jugador1, jugador2):
@@ -75,9 +75,9 @@ def preguntar(jugador1, jugador2):
         card_payload += f"\n{cont}) {x[0]} {x[1]}"
         cont +=1
 
-    jugador1.socket.send(f"{INPUT_REQUIRED}{[card_payload, len(jugador1.mano)]}".encode())
+    jugador1.socket.send(encrypt(f"{INPUT_REQUIRED}{[card_payload, len(jugador1.mano)]}".encode()))
 
-    it = int(jugador1.socket.recv(BUFF_SIZE).decode())
+    it = int(decrypt(jugador1.socket.recv(BUFF_SIZE)).decode())
 
     value = jugador1.mano[it-1][0]
     for carta in jugador2.mano:
@@ -103,7 +103,7 @@ def preguntar(jugador1, jugador2):
         return False
     else:
         checkeoDeSet(jugador1)
-        jugador1.socket.send(f"{GAME_UPDATE}Your new deck is: {jugador1.mano}\nAnd your sets are: {jugador1.sets}".encode())
+        jugador1.socket.send(encrypt(f"{GAME_UPDATE}Your new deck is: {jugador1.mano}\nAnd your sets are: {jugador1.sets}".encode()))
         return True
 
 def pescar(jugador, logging=True):
@@ -111,7 +111,7 @@ def pescar(jugador, logging=True):
     carta = baraja3.pop()
     jugador.mano.append(carta)
     if logging:
-        jugador.socket.send(f"{GAME_UPDATE}Your new deck is: {jugador.mano}\nAnd your sets are: {jugador.sets}".encode())
+        jugador.socket.send(encrypt(f"{GAME_UPDATE}Your new deck is: {jugador.mano}\nAnd your sets are: {jugador.sets}".encode()))
 
 
 def checkeoDeSet(jugador):
@@ -179,7 +179,7 @@ def play(jugadores, deck):
         """ #decidir a quien se le pregunta
 
         print("turno de :", order[turn].nick)
-        connections[turn].send(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode())
+        connections[turn].send(encrypt(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode()))
         print(" ---------------------------  ")
         print("a quien deseas preguntar?")
 
@@ -196,14 +196,14 @@ def play(jugadores, deck):
             cont = 1
             print("Sending payload", ask_payload)
 
-            connections[turn].send((INPUT_REQUIRED + str([ask_payload, len(order) - 1])).encode())
+            connections[turn].send(encrypt((INPUT_REQUIRED + str([ask_payload, len(order) - 1])).encode()))
 
-            other_player = int(connections[turn].recv(BUFF_SIZE).decode())
+            other_player = int(decrypt(connections[turn].recv(BUFF_SIZE)).decode())
 
             keep_asking = preguntar(order[turn], order[other_player])
 
-        connections[turn].send(f"{CHAT}Placeholder chat".encode())
-        message = connections[turn].recv(BUFF_SIZE).decode()
+        connections[turn].send(encrypt(f"{CHAT}Placeholder chat".encode()))
+        message = decrypt(connections[turn].recv(BUFF_SIZE)).decode()
         if message != "#%EmptyMessage#%":
             send_update_to_all_users(f"{jugadores[turn].nick}: {message}", exclude=connections[turn])
         print("Finished the update")
@@ -242,14 +242,14 @@ if __name__ == "__main__":
             connected_players.append(addr)
             connections.append(conn)
             print(connections[-1])
-            nickname = connections[-1].recv(BUFF_SIZE).decode()
+            nickname = decrypt(connections[-1].recv(BUFF_SIZE)).decode()
             print(f"Your nickname is now {nickname}")
             jugadores[len(connections) - 1].nick = nickname
             jugadores[len(connections) - 1].socket = conn
 
             player = jugadores[len(connections) - 1]
 
-            connections[-1].send(str([player.mano, player.sets]).encode())
+            connections[-1].send(encrypt(str([player.mano, player.sets]).encode()))
             print(f"Sent username & deck to player {len(connections)} ({nickname})")
 
         print("Game ready!")

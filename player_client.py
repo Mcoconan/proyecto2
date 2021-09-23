@@ -27,8 +27,8 @@ class PlayerClient:
 
         print(server_ip, server_port, "THE PORT")
         sock.connect((server_ip, server_port))
-        sock.sendall(bytes(nickname, encoding='ascii'))
-        data = sock.recv(1024)
+        sock.sendall(encrypt(bytes(nickname, encoding='ascii')))
+        data = decrypt(sock.recv(1024))
         self.nick = nickname
         self.deck, self.sets = ('Received', eval(repr(data)))
 
@@ -40,7 +40,7 @@ def game_thread():
     """
     while not GAME_OVER:
         response, _ = sock.recvfrom(BUFF_SIZE)
-        response = response.decode()
+        response = decrypt(response).decode()
         action, payload = response[0], response[1:]
 
         if action == GAME_UPDATE:
@@ -58,20 +58,20 @@ def game_thread():
                     print("Non numeric value detected")
                     continue
 
-            sock.sendall(str(input_value).encode())
+            sock.sendall(encrypt(str(input_value).encode()))
 
         elif action == CHAT:
             chat = input("Type a message to chat with the room (enter to skip): \n>> ")
             if len(chat) > 0:
-                sock.sendall(chat.encode())
+                sock.sendall(encrypt(chat.encode()))
             else:
-                sock.sendall("#%EmptyMessage#%".encode())
+                sock.sendall(encrypt("#%EmptyMessage#%".encode()))
             print("Your turn has finished")
 
 
 def send_chat():
     message = input("Type in your message:\n>> ")
-    sock.sendall(message.encode())
+    sock.sendall(encrypt(message.encode()))
 
 
 if __name__ == '__main__':
