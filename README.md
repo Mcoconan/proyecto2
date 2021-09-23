@@ -1,5 +1,5 @@
 # NetworksSecondProject
-proyecto 2 de redes. Juego implementado: Go Fish
+Proyecto 2 de redes. Juego implementado: Go Fish
 A cards game connected using python sockets 
 Connects to the server: ``` 3.16.181.187```
 
