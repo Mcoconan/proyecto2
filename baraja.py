@@ -66,6 +66,7 @@ def send_update_to_all_users(message, exclude=None):
     for connection in connections:
         if connection != exclude:
             print("SENDING STATUS", connection)
+            time.sleep(0.5)
             connection.sendall(encrypt(f"{GAME_UPDATE}{message}".encode()))
 
 
@@ -81,7 +82,7 @@ def preguntar(jugador1, jugador2):
         print(cont,") "+str(x[0]+" "+x[1]))
         card_payload += f"\n{cont}) {x[0]} {x[1]}"
         cont +=1
-
+    time.sleep(0.5)
     jugador1.socket.sendall(encrypt(f"{INPUT_REQUIRED}{[card_payload, len(jugador1.mano)]}".encode()))
 
     it = int(decrypt(jugador1.socket.recv(BUFF_SIZE)).decode())
@@ -110,6 +111,7 @@ def preguntar(jugador1, jugador2):
         return False
     else:
         checkeoDeSet(jugador1)
+        time.sleep(0.5)
         jugador1.socket.sendall(encrypt(f"{GAME_UPDATE}Your new deck is:\n{jugador1.get_deck_string()}\nAnd your sets are: {jugador1.sets}".encode()))
         return True
 
@@ -118,6 +120,7 @@ def pescar(jugador, logging=True):
     carta = baraja3.pop()
     jugador.mano.append(carta)
     if logging:
+        time.sleep(0.5)
         jugador.socket.sendall(encrypt(f"{GAME_UPDATE}Your new deck is: {jugador.get_deck_string()}\nAnd your sets are: {jugador.sets}".encode()))
 
 
@@ -158,6 +161,7 @@ def play(jugadores, deck):
             pescar(i, logging=False)
             dealt += 1
         dealt = 0
+        time.sleep(0.5)
         i.socket.sendall(encrypt(f"{GAME_UPDATE}Your deck is:\n{i.get_deck_string()}".encode()))
 
 
@@ -189,11 +193,9 @@ def play(jugadores, deck):
         """ #decidir a quien se le pregunta
 
         print("turno de :", order[turn].nick)
+        time.sleep(0.5)
         connections[turn].sendall(encrypt(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode()))
-        time.sleep(1)
-        connections[turn].sendall(encrypt(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode()))
-        time.sleep(1)
-        connections[turn].sendall(encrypt(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode()))
+
         print(" ---------------------------  ")
         print("a quien deseas preguntar?")
 
@@ -209,12 +211,14 @@ def play(jugadores, deck):
                 cont +=1
             cont = 1
 
+            time.sleep(0.5)
             connections[turn].sendall(encrypt((INPUT_REQUIRED + str([ask_payload, len(order) - 1])).encode()))
 
             other_player = int(decrypt(connections[turn].recv(BUFF_SIZE)).decode())
 
             keep_asking = preguntar(order[turn], order[other_player])
 
+        time.sleep(0.5)
         connections[turn].sendall(encrypt(f"{CHAT}Placeholder chat".encode()))
         message = decrypt(connections[turn].recv(BUFF_SIZE)).decode()
         if message != "#%EmptyMessage#%":
