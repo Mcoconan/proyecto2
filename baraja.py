@@ -190,6 +190,8 @@ def play(jugadores, deck):
 
         print("turno de :", order[turn].nick)
         connections[turn].sendall(encrypt(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode()))
+        connections[turn].sendall(encrypt(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode()))
+        connections[turn].sendall(encrypt(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode()))
         print(" ---------------------------  ")
         print("a quien deseas preguntar?")
 
