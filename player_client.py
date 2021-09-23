@@ -21,10 +21,10 @@ def encrypt(message):
 def decrypt(message):
     return f.decrypt(message)
 
+
 class PlayerClient:
     def __init__(self):
         nickname = input("Please specify your nickname:\n>> ")
-
         sock.connect((server_ip, server_port))
         sock.sendall(encrypt(bytes(nickname, encoding='ascii')))
         data = decrypt(sock.recv(1024))
@@ -35,7 +35,6 @@ class PlayerClient:
 def game_thread():
     """
     This function handles messaging
-    :return:
     """
     while not GAME_OVER:
         response, _ = sock.recvfrom(BUFF_SIZE)
@@ -86,6 +85,7 @@ if __name__ == '__main__':
 
     while not GAME_OVER:
         time.sleep(1)
+
 
 
 
