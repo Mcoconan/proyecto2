@@ -5,13 +5,15 @@ import random
 import time
 import socket
 import sys
+import threading
+
 from constants import *
 baraja1 = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
 baraja2 = ["♣", "♥", "♠", "♦"]
 baraja3 = []
 jugadores = []
 connected_players = []
-
+game_over = [False]
 """
 creación del mazo de juego
 """
@@ -42,10 +44,11 @@ class jugador():
         return self.nick, self.mano, self.sets
 
 
-def send_update_to_all_users(message):
+def send_update_to_all_users(message, exclude=None):
     for connection in connections:
-        print("SENDING STATUS", connection)
-        connection.send(f"{GAME_UPDATE}{message}".encode())
+        if connection != exclude:
+            print("SENDING STATUS", connection)
+            connection.send(f"{GAME_UPDATE}{message}".encode())
 
 
 def preguntar(jugador1, jugador2):
@@ -84,17 +87,20 @@ def preguntar(jugador1, jugador2):
     if len(poseidas) == 0:
         pescar(jugador1)
         status = "al jugador: "+jugador1.nick+" le toca pescar "
+        print(status)
         send_update_to_all_users(status)
+        return False
     else:
         checkeoDeSet(jugador1)
         jugador1.socket.send(f"{GAME_UPDATE}Your new deck is: {jugador1.mano}\nAnd your sets are: {jugador1.sets}".encode())
-    print(status)
+        return True
 
-def pescar(jugador):
+def pescar(jugador, logging=True):
     print(baraja3)
     carta = baraja3.pop()
     jugador.mano.append(carta)
-    jugador.socket.send(f"{GAME_UPDATE}Your new deck is: {jugador.mano}\nAnd your sets are: {jugador.sets}".encode())
+    if logging:
+        jugador.socket.send(f"{GAME_UPDATE}Your new deck is: {jugador.mano}\nAnd your sets are: {jugador.sets}".encode())
 
 
 def checkeoDeSet(jugador):
@@ -121,6 +127,8 @@ def inicio():
         if (err>0):
             print("input no valido")
         err = 0
+    for i in range(cant):
+        jugadores.append(jugador())
     
 def play(jugadores, deck):
     turn = 0
@@ -129,11 +137,7 @@ def play(jugadores, deck):
     order = jugadores
     for i in order:
         while dealt < size:
-            pescar(i)
-            #pescar(order[0])
-            #pescar(order[1])
-            #pescar(order[2])
-            #pescar(order[3])
+            pescar(i, logging=False)
             dealt += 1
         dealt = 0
 
@@ -164,12 +168,15 @@ def play(jugadores, deck):
         """ #decidir a quien se le pregunta
 
         print("turno de :", order[turn].nick)
-        connections[turn].send(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode())
+        connections[turn].send(f"{TURN_START}It's your turn, {order[turn].nick}".encode())
         print(" ---------------------------  ")
         print("a quien deseas preguntar?")
-        cont = 0
-        ask_payload = "Who do you want to ask for a card?"
-        while other_player == turn:
+
+        keep_asking = True
+        checkeoDeSet(order[turn])
+        while keep_asking:
+            cont = 0
+            ask_payload = "Who do you want to ask for a card?"
             for j in order:
                 if(cont != turn):
                     print(cont,") "+j.nick)
@@ -182,8 +189,13 @@ def play(jugadores, deck):
 
             other_player = int(connections[turn].recv(BUFF_SIZE).decode())
 
-        preguntar(order[turn], order[other_player])
-        checkeoDeSet(order[turn])
+            keep_asking = preguntar(order[turn], order[other_player])
+
+        connections[turn].send(f"{CHAT}Placeholder chat".encode())
+        message = connections[turn].recv(BUFF_SIZE).decode()
+        if message != "#%EmptyMessage#%":
+            send_update_to_all_users(f"{jugadores[turn].nick}: {message}", exclude=connections[turn])
+        print("Finished the update")
 
         if turn >= len(order) - 1:
             turn = 0
@@ -192,9 +204,8 @@ def play(jugadores, deck):
         time.sleep(3)
         print("=========================================")
 
-
-    return True
-
+    game_over[0] = True
+    return game_over
 
 
 if __name__ == "__main__":
@@ -212,7 +223,7 @@ if __name__ == "__main__":
         sock.listen(5)
 
         connections = []
-
+        print(len(connected_players), len(jugadores))
         while len(connected_players) < len(jugadores):
             print("Waiting for players... ")
             conn, addr = sock.accept()
@@ -231,7 +242,9 @@ if __name__ == "__main__":
             print(f"Sent username & deck to player {len(connections)} ({nickname})")
 
         print("Game ready!")
-    play(jugadores, baraja3)
+    game = threading.Thread(target=play, args=(jugadores, baraja3))
+    game.start()
+
 
 
 

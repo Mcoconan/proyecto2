@@ -8,7 +8,9 @@ from constants import *
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_ip = sys.argv[1]
 server_port = int(sys.argv[2])
+my_turn = [False]
 GAME_OVER = False
+
 
 class PlayerClient:
     def __init__(self):
@@ -35,6 +37,14 @@ def game_thread():
         if action == GAME_UPDATE:
             print(payload)
 
+        elif action == TURN_START:
+            print(payload)
+            my_turn[0] = True
+
+        elif action == TURN_END:
+            print(payload)
+            my_turn[0] = False
+
         elif action == INPUT_REQUIRED:
             payload, max_value = eval(payload)
             input_value = max_value + 1
@@ -49,8 +59,18 @@ def game_thread():
 
             sock.sendall(str(input_value).encode())
 
+        elif action == CHAT:
+            chat = input("Type a message to chat with the room (enter to skip): \n>> ")
+            if len(chat) > 0:
+                sock.sendall(chat.encode())
+            else:
+                sock.sendall("#%EmptyMessage#%".encode())
+            print("Your turn has finished")
 
 
+def send_chat():
+    message = input("Type in your message:\n>> ")
+    sock.sendall(message.encode())
 
 
 if __name__ == '__main__':
