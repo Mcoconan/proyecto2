@@ -6,8 +6,21 @@ import time
 import socket
 import sys
 import threading
-
+from cryptography.fernet import Fernet
 from constants import *
+
+
+f = Fernet(b'QKJckJwoLx8kT10gslNc4_IEE4fNYZyluOaK2m5fwmE=')
+
+
+def encrypt(message):
+    return f.encrypt(message)
+
+
+def decrypt(message):
+    return f.decrypt(message)
+
+
 baraja1 = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"]
 baraja2 = ["♣", "♥", "♠", "♦"]
 baraja3 = []
@@ -21,8 +34,6 @@ for i in baraja2:
     for j in baraja1: 
         baraja3.append([j,i])
 random.shuffle(baraja3)
- 
-
 
 
 
@@ -168,7 +179,7 @@ def play(jugadores, deck):
         """ #decidir a quien se le pregunta
 
         print("turno de :", order[turn].nick)
-        connections[turn].send(f"{TURN_START}It's your turn, {order[turn].nick}".encode())
+        connections[turn].send(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode())
         print(" ---------------------------  ")
         print("a quien deseas preguntar?")
 

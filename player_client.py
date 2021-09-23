@@ -2,15 +2,24 @@ import socket
 import sys
 import threading
 import time
-
+from cryptography.fernet import Fernet
 from constants import *
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server_ip = sys.argv[1]
 server_port = int(sys.argv[2])
-my_turn = [False]
 GAME_OVER = False
 
+
+f = Fernet(b'QKJckJwoLx8kT10gslNc4_IEE4fNYZyluOaK2m5fwmE=')
+
+
+def encrypt(message):
+    return f.encrypt(message)
+
+
+def decrypt(message):
+    return f.decrypt(message)
 
 class PlayerClient:
     def __init__(self):
@@ -36,14 +45,6 @@ def game_thread():
 
         if action == GAME_UPDATE:
             print(payload)
-
-        elif action == TURN_START:
-            print(payload)
-            my_turn[0] = True
-
-        elif action == TURN_END:
-            print(payload)
-            my_turn[0] = False
 
         elif action == INPUT_REQUIRED:
             payload, max_value = eval(payload)
