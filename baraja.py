@@ -216,6 +216,25 @@ def play(jugadores, deck):
         print("=========================================")
 
     game_over[0] = True
+
+    leaderboard = {}
+    for player in jugadores:
+        if len(player.sets) not in leaderboard.keys():
+            leaderboard[len(player.sets)] = [player.nick]
+        else:
+            leaderboard[len(player.sets)].append(player.nick)
+
+    leaderboard_keys = sorted(list(leaderboard.keys()))
+    counter = 1
+    leaderboard_payload = "GAME OVER!\nLEADERBOARD:"
+    while len(leaderboard_keys) > 0:
+        f"\n{counter}: {leaderboard[leaderboard_keys.pop()]}"
+        counter += 1
+
+    send_update_to_all_users(leaderboard_payload)
+
+
+
     return game_over
 
 
@@ -239,17 +258,17 @@ if __name__ == "__main__":
             print("Waiting for players... ")
             conn, addr = sock.accept()
             print(f"One player entered!")
+
             connected_players.append(addr)
             connections.append(conn)
-            print(connections[-1])
+
             nickname = decrypt(connections[-1].recv(BUFF_SIZE)).decode()
-            print(f"Your nickname is now {nickname}")
             jugadores[len(connections) - 1].nick = nickname
             jugadores[len(connections) - 1].socket = conn
 
             player = jugadores[len(connections) - 1]
 
-            connections[-1].send(encrypt(str([player.mano, player.sets]).encode()))
+            connections[-1].send(encrypt(f"{GAME_UPDATE}Your deck is: {[player.mano, player.sets]}".encode()))
             print(f"Sent username & deck to player {len(connections)} ({nickname})")
 
         print("Game ready!")
