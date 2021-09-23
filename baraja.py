@@ -30,7 +30,6 @@ funcion con la cual se pregunta si posee x carta
 """
 
 
-
 class jugador(): 
     def __init__(self):
         self.nick = ""      # nick del jugador
