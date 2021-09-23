@@ -149,7 +149,7 @@ def inicio():
     cant = 0
     err =0
     while(cant>5 or cant<1):
-        cant =int(input("Type in the number of players (1-5): "))
+        cant =int(input("Type in the number of players (2-5): "))
         if(cant>5 or cant<1):
             err +=1
         if (err>0):
