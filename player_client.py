@@ -40,7 +40,7 @@ def game_thread():
         response, _ = sock.recvfrom(BUFF_SIZE)
         response = decrypt(response).decode()
         action, payload = response[0], response[1:]
-
+        print("ACTION RECEIVED", action)
         if action == GAME_UPDATE:
             print(f"\n{payload}")
 
