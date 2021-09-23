@@ -1,5 +1,12 @@
 # !/usr/bin/python
 # -- coding: utf-8 --
+"""
+    baraja.py
+    Authors: Mario Sarmientos, Randy Venegas, Pablo Ruiz 18259 (PingMaster99)
+    Version 1.0
+    Updated September 23, 2021
+    Server side of Go Fish game using TCP encrypted sockets.
+"""
 
 import random
 import time
@@ -65,7 +72,6 @@ class jugador():
 def send_update_to_all_users(message, exclude=None):
     for connection in connections:
         if connection != exclude:
-            print("SENDING STATUS", connection)
             time.sleep(0.5)
             connection.sendall(encrypt(f"{GAME_UPDATE}{message}".encode()))
 
@@ -75,7 +81,7 @@ def preguntar(jugador1, jugador2):
     cont = 1
     #choose = random.randint(0,len(jugador1.mano)-1)
     #value = jugador1.mano[choose][0] #carta a preguntar
-    print("carta a preguntar: ")
+    print("card to ask for: ")
     card_payload = "Card to ask for:"
 
     for x in jugador1.mano:
@@ -95,17 +101,17 @@ def preguntar(jugador1, jugador2):
         jugador2.mano.remove(carta)
     for carta in poseidas:
         jugador1.mano.append(carta)
-    status = jugador1.nick+" le ha preguntado a  "+jugador2.nick+" si tiene la carta "+value+"s. "
+    status = jugador1.nick+" has asked  "+jugador2.nick+" for "+value+"s. "
     send_update_to_all_users(status)
 
     print()
-    status = jugador2.nick+" tenia "+str(len(poseidas))+" cartas de "+value
+    status = jugador2.nick+" had "+str(len(poseidas))+" cards of value "+value
     send_update_to_all_users(status)
 
     print(status)
     if len(poseidas) == 0:
         pescar(jugador1)
-        status = "al jugador: "+jugador1.nick+" le toca pescar "
+        status = "Go fish, "+jugador1.nick+"!"
         print(status)
         send_update_to_all_users(status)
         return False
@@ -114,6 +120,7 @@ def preguntar(jugador1, jugador2):
         time.sleep(0.5)
         jugador1.socket.sendall(encrypt(f"{GAME_UPDATE}Your new deck is:\n{jugador1.get_deck_string()}\nAnd your sets are: {jugador1.sets}".encode()))
         return True
+
 
 def pescar(jugador, logging=True):
     print(baraja3)
@@ -133,7 +140,7 @@ def checkeoDeSet(jugador):
             cantidad[carta[0]] += 1
     for count in cantidad.keys():
         if cantidad[count] == 4:
-            print("el jugador: "+jugador.nick+" tiene un set de "+count+"s.")
+            print("Player: "+jugador.nick+" has a set of "+count+"s.")
             send_update_to_all_users(f"{jugador.nick} has a set of {count}s!")
             jugador.sets.append(count)
             jugador.mano[:] = [carta for carta in jugador.mano if carta[0] != count]
@@ -142,11 +149,11 @@ def inicio():
     cant = 0
     err =0
     while(cant>5 or cant<1):
-        cant =int(input("ingrese numero de jugadores (1-5): "))
+        cant =int(input("Type in the number of players (1-5): "))
         if(cant>5 or cant<1):
             err +=1
         if (err>0):
-            print("input no valido")
+            print("Invalid input")
         err = 0
     for i in range(cant):
         jugadores.append(jugador())
@@ -170,7 +177,7 @@ def play(jugadores, deck):
         for jugador in order:
             count = 0
 
-            mano = "mano de "+jugador.nick+": "
+            mano = "deck of player: "+jugador.nick+": "
             for carta in jugador.mano:
                 if count < len(jugador.mano)-1:
                     mano += carta[0]+carta[1]+", "
@@ -179,7 +186,7 @@ def play(jugadores, deck):
                     mano += carta[0]+carta[1]+"."
             print(mano)
             count = 0
-            sets = "sets de "+jugador.nick
+            sets = "sets of player: "+jugador.nick
             for set in jugador.sets:
                 if count < len(jugador.sets)-1:
                     sets += set+"s, "
@@ -187,20 +194,16 @@ def play(jugadores, deck):
                     sets += set+"s."
             print(sets)
         other_player = turn
-        """ 
-        while other_player == turn:
-            other_player = random.randint(0,3) 
-        """ #decidir a quien se le pregunta
 
-        print("turno de :", order[turn].nick)
+        print(f"{order[turn].nick}'s turn!")
         time.sleep(0.5)
         connections[turn].sendall(encrypt(f"{GAME_UPDATE}It's your turn, {order[turn].nick}".encode()))
 
-        print(" ---------------------------  ")
-        print("a quien deseas preguntar?")
-
         keep_asking = True
         checkeoDeSet(order[turn])
+        if len(order[turn].mano) == 0:
+            pescar(order[turn], logging=True)
+            keep_asking = False
         while keep_asking:
             cont = 0
             ask_payload = "Who do you want to ask for a card?"
@@ -249,9 +252,6 @@ def play(jugadores, deck):
         counter += 1
 
     send_update_to_all_users(leaderboard_payload)
-
-
-
     return game_over
 
 

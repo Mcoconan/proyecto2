@@ -1,3 +1,11 @@
+"""
+    player_client.py
+    Authors: Mario Sarmientos, Randy Venegas, Pablo Ruiz 18259 (PingMaster99)
+    Version 1.0
+    Updated September 23, 2021
+    Client side of Go Fish game using TCP encrypted sockets.
+"""
+
 import socket
 import sys
 import threading
